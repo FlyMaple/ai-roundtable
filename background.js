@@ -1,13 +1,13 @@
 // AI Panel - Background Service Worker
 
-// URL patterns for each AI
+// 各個 AI 的網址模式
 const AI_URL_PATTERNS = {
   claude: ['claude.ai'],
   chatgpt: ['chat.openai.com', 'chatgpt.com'],
   gemini: ['gemini.google.com']
 };
 
-// Store latest responses using chrome.storage.session (persists across service worker restarts)
+// 使用 chrome.storage.session 儲存最新的回應（在 Service Worker 重啟時仍能保持）
 async function getStoredResponses() {
   const result = await chrome.storage.session.get('latestResponses');
   return result.latestResponses || { claude: null, chatgpt: null, gemini: null };
@@ -19,18 +19,18 @@ async function setStoredResponse(aiType, content) {
   await chrome.storage.session.set({ latestResponses: responses });
 }
 
-// Open side panel when extension icon is clicked
+// 當點擊擴充功能圖示時開啟側邊欄
 chrome.action.onClicked.addListener((tab) => {
   chrome.sidePanel.open({ windowId: tab.windowId });
 });
 
-// Set side panel behavior
+// 設定側邊欄行為
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 
-// Listen for messages from side panel and content scripts
+// 監聽來自側邊欄和內容腳本的訊息
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   handleMessage(message, sender).then(sendResponse);
-  return true; // Keep channel open for async response
+  return true; // 保持通道開啟以進行非同步回應
 });
 
 async function handleMessage(message, sender) {
@@ -42,18 +42,18 @@ async function handleMessage(message, sender) {
       return await sendFilesToAI(message.aiType, message.files);
 
     case 'GET_RESPONSE':
-      // Query content script directly for real-time response (not from storage)
+      // 直接向內容腳本查詢即時回應（不從儲存中獲取）
       return await getResponseFromContentScript(message.aiType);
 
     case 'RESPONSE_CAPTURED':
-      // Content script captured a response
+      // 內容腳本擷取到了回應
       await setStoredResponse(message.aiType, message.content);
-      // Forward to side panel (include content for discussion mode)
+      // 轉發給側邊欄（包含討論模式所需的內容）
       notifySidePanel('RESPONSE_CAPTURED', { aiType: message.aiType, content: message.content });
       return { success: true };
 
     case 'CONTENT_SCRIPT_READY':
-      // Content script loaded and ready
+      // 內容腳本已載入並就緒
       const aiType = getAITypeFromUrl(sender.tab?.url);
       if (aiType) {
         notifySidePanel('TAB_STATUS_UPDATE', { aiType, connected: true });
@@ -61,7 +61,7 @@ async function handleMessage(message, sender) {
       return { success: true };
 
     default:
-      return { error: 'Unknown message type' };
+      return { error: '未知的訊息類型' };
   }
 }
 
@@ -69,20 +69,20 @@ async function getResponseFromContentScript(aiType) {
   try {
     const tab = await findAITab(aiType);
     if (!tab) {
-      // Fallback to stored response if tab not found
+      // 如果未找到分頁，則回退到已儲存的回應
       const responses = await getStoredResponses();
       return { content: responses[aiType] };
     }
 
-    // Query content script for real-time DOM content
+    // 向內容腳本查詢即時 DOM 內容
     const response = await chrome.tabs.sendMessage(tab.id, {
       type: 'GET_LATEST_RESPONSE'
     });
 
     return { content: response?.content || null };
   } catch (err) {
-    // Fallback to stored response on error
-    console.log('[AI Panel] Failed to get response from content script:', err.message);
+    // 發生錯誤時回退
+    console.log('[AI Panel] 向內容腳本獲取回應失敗:', err.message);
     const responses = await getStoredResponses();
     return { content: responses[aiType] };
   }
@@ -90,20 +90,19 @@ async function getResponseFromContentScript(aiType) {
 
 async function sendMessageToAI(aiType, message) {
   try {
-    // Find the tab for this AI
     const tab = await findAITab(aiType);
 
     if (!tab) {
-      return { success: false, error: `No ${aiType} tab found` };
+      return { success: false, error: `未找到 ${aiType} 的分頁` };
     }
 
-    // Send message to content script
+    // 傳送訊息給內容腳本
     const response = await chrome.tabs.sendMessage(tab.id, {
       type: 'INJECT_MESSAGE',
       message
     });
 
-    // Notify side panel
+    // 通知側邊欄
     notifySidePanel('SEND_RESULT', {
       aiType,
       success: response?.success,
@@ -117,26 +116,25 @@ async function sendMessageToAI(aiType, message) {
 }
 
 async function sendFilesToAI(aiType, files) {
-  console.log('[AI Panel] Background: sendFilesToAI called for', aiType, 'files:', files?.length);
+  console.log('[AI Panel] 背景腳本: 為', aiType, '調用 sendFilesToAI，檔案數:', files?.length);
   try {
     const tab = await findAITab(aiType);
 
     if (!tab) {
-      console.log('[AI Panel] Background: No tab found for', aiType);
-      return { success: false, error: `No ${aiType} tab found` };
+      console.log('[AI Panel] 背景腳本: 未找到', aiType, '的分頁');
+      return { success: false, error: `未找到 ${aiType} 的分頁` };
     }
 
-    console.log('[AI Panel] Background: Sending INJECT_FILES to tab', tab.id);
-    // Send files to content script
+    console.log('[AI Panel] 背景腳本: 正在向分頁', tab.id, '傳送 INJECT_FILES');
     const response = await chrome.tabs.sendMessage(tab.id, {
       type: 'INJECT_FILES',
       files
     });
 
-    console.log('[AI Panel] Background: Response from content script:', response);
+    console.log('[AI Panel] 背景腳本: 來自內容腳本的回應:', response);
     return response;
   } catch (err) {
-    console.log('[AI Panel] Background: sendFilesToAI error:', err.message);
+    console.log('[AI Panel] 背景腳本: sendFilesToAI 錯誤:', err.message);
     return { success: false, error: err.message };
   }
 }
@@ -170,11 +168,11 @@ async function notifySidePanel(type, data) {
   try {
     await chrome.runtime.sendMessage({ type, ...data });
   } catch (err) {
-    // Side panel might not be open, ignore
+    // 側邊欄可能未開啟，忽略錯誤
   }
 }
 
-// Track tab updates
+// 追蹤分頁更新
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url) {
     const aiType = getAITypeFromUrl(tab.url);
@@ -182,10 +180,4 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       notifySidePanel('TAB_STATUS_UPDATE', { aiType, connected: true });
     }
   }
-});
-
-// Track tab closures
-chrome.tabs.onRemoved.addListener((tabId) => {
-  // We'd need to track which tabs were AI tabs to notify properly
-  // For now, side panel will re-check on next action
 });

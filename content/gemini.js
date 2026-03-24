@@ -54,6 +54,19 @@
       sendResponse({ content: response });
       return true;
     }
+
+    if (message.type === 'NEW_CHAT_ACTION') {
+      document.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'O',
+        code: 'KeyO',
+        keyCode: 79,
+        ctrlKey: true,
+        shiftKey: true,
+        bubbles: true
+      }));
+      sendResponse({ success: true });
+      return true;
+    }
   });
 
   // Setup response observer for cross-reference feature
@@ -385,7 +398,7 @@
 
     // Gemini doesn't support programmatic file upload well
     // Return error with helpful message
-    throw new Error('Gemini 暂不支持自动文件上传，请手动上传文件');
+    throw new Error('Gemini 暫不支持自動文件上傳，請手動上傳文件');
   }
 
   console.log('[AI Panel] Gemini content script loaded');

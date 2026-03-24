@@ -1,18 +1,18 @@
-# AI 圆桌 (AI Roundtable)
+# AI 圓桌 (AI Roundtable)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Status: Experimental](https://img.shields.io/badge/Status-Experimental-orange.svg)](#-experimental-prototype--实验性原型)
+[![Status: Experimental](https://img.shields.io/badge/Status-Experimental-orange.svg)](#-experimental-prototype--實驗性原型)
 
-> 让多个 AI 助手围桌讨论，交叉评价，深度协作
+> 讓多個 AI 助手圍桌討論，交叉評價，深度協作
 
-一个 Chrome 扩展，让你像"会议主持人"一样，同时操控多个 AI（Claude、ChatGPT、Gemini），实现真正的 AI 圆桌会议。
+一個 Chrome 擴充功能，讓你像「會議主持人」一樣，同時操控多個 AI（Claude、ChatGPT、Gemini），實現真正的 AI 圓桌會議。
 
 <!-- TODO: 添加 GIF 演示 -->
 <!-- ![Demo GIF](assets/demo.gif) -->
 
 ---
 
-## 🔬 Experimental Prototype / 实验性原型
+## 🔬 Experimental Prototype / 實驗性原型
 
 **EN**
 
@@ -25,12 +25,12 @@ Think of it as a *runnable experiment* rather than a polished product.
 
 **中文**
 
-这是一个**实验性原型**，用于验证一种工作方式：
+這是一個**實驗性原型**，用於驗證一種工作方式：
 
-> **同一个问题，让多个模型同时回答并互相辩论，用分歧与冲突逼出漏洞、拓展思路。**
+> **同一個問題，讓多個模型同時回答並互相辯論，用分歧與衝突逼出漏洞、拓展思路。**
 
-它**不是**一个生产级工具，也不是为了和任何 AI 聚合器或工作流产品竞争。
-你可以把它理解为：**一份可以直接运行的实验记录**。
+它**不是**一個生產級工具，也不是為了和任何 AI 聚合器或工作流產品競爭。
+你可以把它理解為：**一份可以直接執行的實驗記錄**。
 
 ---
 
@@ -48,17 +48,17 @@ The focus is validating the **roundtable workflow**, not building software for i
 
 **中文**
 
-* 不承诺长期兼容（AI 网页端结构随时可能变化）
-* 不保证持续维护或快速修复
-* 不做云端账号、数据存储或同步
-* 不做复杂的工作流编排、导出或模板库
-* 不追求覆盖所有模型或平台
+* 不承諾長期相容（AI 網頁端結構隨時可能變化）
+* 不保證持續維護或快速修復
+* 不做雲端帳號、資料儲存或同步
+* 不做複雜的工作流編排、匯出或範本庫
+* 不追求覆蓋所有模型或平臺
 
-重点在于**验证"圆桌式思考流程"是否有价值**，而不是把软件本身做大做全。
+重點在於**驗證「圓桌式思考流程」是否有價值**，而不是把軟體本身做大做全。
 
 ---
 
-## ❓ Why this does NOT use APIs / 为什么不用 API
+## ❓ Why this does NOT use APIs / 為什麼不用 API
 
 **EN**
 
@@ -70,35 +70,35 @@ I'm currently most satisfied with, and calibrated to, the **web chat experience*
 
 **中文**
 
-这个项目刻意选择直接操作 **Claude / ChatGPT / Gemini 的网页端**，而不是使用 API。
+這個專案刻意選擇直接操作 **Claude / ChatGPT / Gemini 的網頁端**，而不是使用 API。
 
-在实际使用中，**API 和 Web 端的表现往往并不一致**，常见原因包括：模型版本差异、隐藏的系统设置、采样参数，以及网页端特有的交互能力。
+在實際使用中，**API 和 Web 端的表現往往並不一致**，常見原因包括：模型版本差異、隱藏的系統設定、採樣參數，以及網頁端特有的互動能力。
 
-目前我对 **Web 端 Chat 的体验最熟悉、也最满意**，因此这次实验选择留在 Web 端，验证的是我真实使用场景下的思考流程，而不是 API 能力。
+目前我對 **Web 端 Chat 的體驗最熟悉、也最滿意**，因此這次實驗選擇留在 Web 端，驗證的是我真實使用場景下的思考流程，而不是 API 能力。
 
 ---
 
 ## 核心特性
 
-- **统一控制台** - 通过 Chrome 侧边栏同时管理多个 AI
-- **多目标发送** - 一条消息同时发给多个 AI，对比回答
-- **文件上传** - 同时向多个 AI 发送图片或文档附件
-- **互评模式** - 让所有 AI 互相评价，对等参与（/mutual 命令）
-- **交叉引用** - 让 Claude 评价 ChatGPT 的回答，或反过来
-- **讨论模式** - 两个 AI 就同一主题进行多轮深度讨论
-- **无需 API** - 直接操作网页界面，使用你现有的 AI 订阅
+- **統一控制檯** - 透過 Chrome 側邊欄同時管理多個 AI
+- **多目標傳送** - 一條訊息同時傳送給多個 AI，對比回答
+- **檔案上傳** - 同時向多個 AI 傳送圖片或文件附件
+- **互評模式** - 讓所有 AI 互相評價，對等參與（/mutual 指令）
+- **交叉引用** - 讓 Claude 評價 ChatGPT 的回答，或反過來
+- **討論模式** - 兩個 AI 就同一主題進行多輪深度討論
+- **無需 API** - 直接操作網頁介面，使用你現有的 AI 訂閱
 
 ---
 
-## 🧭 推荐使用流程 / Recommended Workflow
+## 🧭 推薦使用流程 / Recommended Workflow
 
 **中文**
 
-1. **普通模式**：同题多答，制造分歧
+1. **普通模式**：同題多答，製造分歧
 2. **/mutual**：互相挑刺，逼出前提
-3. **@ 审计**：由你决定谁审谁
-4. **/cross**：两方围攻一方，压力测试
-5. **讨论模式**：只在需要时进行多轮辩论
+3. **@ 稽核**：由你決定誰審誰
+4. **/cross**：兩方圍攻一方，壓力測試
+5. **討論模式**：只在需要時進行多輪辯論
 
 **EN**
 
@@ -110,33 +110,33 @@ I'm currently most satisfied with, and calibrated to, the **web chat experience*
 
 ---
 
-## 🚀 快速开始 / Quick Start
+## 🚀 快速開始 / Quick Start
 
-### 安装
+### 安裝
 
-1. 下载或克隆本仓库
-2. 打开 Chrome，进入 `chrome://extensions/`
-3. 开启右上角「开发者模式」
-4. 点击「加载已解压的扩展程序」
-5. 选择本项目文件夹
+1. 下載或 Clone 本儲存庫
+2. 開啟 Chrome，進入 `chrome://extensions/`
+3. 開啟右上角「開發者模式」
+4. 點擊「載入解壓縮的擴充功能」
+5. 選擇此專案資料夾
 
-### 首次使用提示：请刷新页面
+### 首次使用提示：請重新整理頁面
 
-打开侧边栏并选中目标 AI 后，**建议把每个 AI 的网页刷新一次**。
-这样可以确保插件正确获取页面内容并稳定绑定（尤其是这些标签页已经打开了一段时间的情况下）。
+開啟側邊欄並選取目標 AI 後，**建議將每個 AI 的網頁重新整理一次**。
+這樣可以確保外掛正確獲取頁面內容並穩定綁定（尤其是這些分頁已經開啟一段時間的情況下）。
 
 > **First-run tip:** After opening the sidebar and selecting target AIs, **refresh each AI page once** to ensure reliable detection.
 
-### 准备工作
+### 準備工作
 
-1. 打开 Chrome，登录以下 AI 平台（根据需要）：
+1. 開啟 Chrome，登入以下 AI 平臺（視需要）：
    - [Claude](https://claude.ai)
    - [ChatGPT](https://chatgpt.com)
    - [Gemini](https://gemini.google.com)
 
-2. 推荐使用 Chrome 的 Split Tab 功能，将 2 个 AI 页面并排显示
+2. 推薦使用 Chrome 的 Split Tab 功能，將 2 個 AI 頁面並列顯示
 
-3. 点击扩展图标，打开侧边栏控制台
+3. 點擊擴充功能圖示，開啟側邊欄控制檯
 
 ---
 
@@ -144,115 +144,136 @@ I'm currently most satisfied with, and calibrated to, the **web chat experience*
 
 ### 普通模式
 
-**基本发送**
-1. 勾选要发送的目标 AI（Claude / ChatGPT / Gemini）
-2. 输入消息
-3. 按 Enter 或点击「发送」按钮
+**基本傳送**
+1. 勾選要傳送的目標 AI（Claude / ChatGPT / Gemini）
+2. 輸入訊息
+3. 按 Enter 或點擊「傳送」按鈕
 
-**@ 提及语法**
-- 点击 @ 按钮快速插入 AI 名称
-- 或手动输入：`@Claude 你怎么看这个问题？`
+**@ 提及語法**
+- 點擊 @ 按鈕快速插入 AI 名稱
+- 或手動輸入：`@Claude 你怎麼看這個問題？`
 
-**互评（推荐）**
+**互評（推薦）**
 
-基于当前已有的回复，让所有选中的 AI 互相评价：
+基於目前已有回覆，讓所有選中的 AI 互相評價：
 ```
 /mutual
-/mutual 重点分析优缺点
+/mutual 重點分析優缺點
 ```
 
 用法：
-1. 先发送一个问题给多个 AI，等待它们各自回复
-2. 点击 `/mutual` 按钮或输入 `/mutual`
-3. 每个 AI 都会收到其他 AI 的回复并进行评价
-   - 2 AI：A 评价 B，B 评价 A
-   - 3 AI：A 评价 BC，B 评价 AC，C 评价 AB
+1. 先傳送一個問題給多個 AI，等待它們各自回覆
+2. 點擊 `/mutual` 按鈕或輸入 `/mutual`
+3. 每個 AI 都會收到其他 AI 的回覆並進行評價
+   - 2 AI：A 評價 B，B 評價 A
+   - 3 AI：A 評價 BC，B 評價 AC，C 評價 AB
 
-**交叉引用（单向）**
+**交叉引用（單向）**
 
-两个 AI（自动检测）：
+兩個 AI（自動偵測）：
 ```
-@Claude 评价一下 @ChatGPT
+@Claude 評價一下 @ChatGPT
 ```
-最后 @ 的是来源（被评价），前面的是目标（评价者）
+最後 @ 的是來源（被評價），前面的是目標（評價者）
 
-三个 AI（使用 /cross 命令）：
+三個 AI（使用 /cross 指令）：
 ```
-/cross @Claude @Gemini <- @ChatGPT 评价一下
-/cross @ChatGPT <- @Claude @Gemini 对比一下
+/cross @Claude @Gemini <- @ChatGPT 評價一下
+/cross @ChatGPT <- @Claude @Gemini 對比一下
 ```
 
-**动作下拉菜单**：快速插入预设动作词（评价/借鉴/批评/补充/对比）
+#### 指令語法詳解
 
-### 讨论模式
+格式：`/cross @[目標 AI] <- @[來源 AI] [你的指令]`
 
-让两个 AI 就同一主题进行深度辩论：
+*   **`<-` 左側 (@目標 AI)**：這條訊息要「傳送給誰」。
+*   **`<-` 右側 (@來源 AI)**：要「抓取誰」目前的最新回覆內容。
+*   **最後的文字**：你要求目標 AI 執行的具體任務。
 
-1. 点击顶部「讨论」切换到讨论模式
-2. 选择 2 个参与讨论的 AI
-3. 输入讨论主题
-4. 点击「开始讨论」
+**實際案例：**
+1.  `/cross @claude @gemini <- @chatgpt 評價一下`
+    *   *語意：* 「嘿 Claude 和 Gemini，你們看看 ChatGPT 剛才說了什麼，然後評價一下它的觀點。」
+2.  `/cross @chatgpt <- @claude @gemini 對比一下`
+    *   *語意：* 「嘿 ChatGPT，這裡有 Claude 和 Gemini 兩邊的回答，請你幫我對比一下這兩者有什麼異同。」
 
-**讨论流程**
+**互評（/mutual）vs 交叉引用（/cross）**
+
+| 指令 | 適用場景 | 運作邏輯 |
+| :--- | :--- | :--- |
+| **`/mutual`** | 全體參與者對等討論 | 每個 AI 都會收到「其他所有 AI」的回答並給出評價。 |
+| **`/cross`** | 指定特定 AI 進行稽核 | 精確控制哪些 AI 負責評價，哪些 AI 被評價，適合進行「壓力測試」。 |
+
+**動作下拉選單**：快速插入預設動作詞（評價/借鑑/批評/補充/對比）
+
+### 討論模式
+
+讓兩個 AI 就同一主題進行深度辯論：
+
+1. 點擊頂部「討論」切換到討論模式
+2. 選擇 2 個參與討論的 AI
+3. 輸入討論主題
+4. 點擊「開始討論」
+
+**討論流程**
 
 ```
-第 1 轮: 两个 AI 各自阐述观点
-第 2 轮: 互相评价对方的观点
-第 3 轮: 回应对方的评价，深化讨论
+第 1 輪: 兩個 AI 各自闡述觀點
+第 2 輪: 互相評價對方的觀點
+第 3 輪: 回應對方的評價，深化討論
 ...
-总结: 双方各自生成讨论总结
+總結: 雙方各自生成討論總結
 ```
 
 ---
 
-## 技术架构
+## 技術架構
 
 ```
 ai-roundtable/
-├── manifest.json           # Chrome 扩展配置 (Manifest V3)
-├── background.js           # Service Worker 消息中转
+├── manifest.json           # Chrome 擴充功能配置 (Manifest V3)
+├── background.js           # Service Worker 訊息中轉
 ├── sidepanel/
-│   ├── panel.html         # 侧边栏 UI
-│   ├── panel.css          # 样式
-│   └── panel.js           # 控制逻辑
+│   ├── panel.html         # 側邊欄 UI
+│   ├── panel.css          # 樣式
+│   └── panel.js           # 控制邏輯
 ├── content/
-│   ├── claude.js          # Claude 页面注入脚本
-│   ├── chatgpt.js         # ChatGPT 页面注入脚本
-│   └── gemini.js          # Gemini 页面注入脚本
-└── icons/                  # 扩展图标
+│   ├── claude.js          # Claude 頁面注入指令碼
+│   ├── chatgpt.js         # ChatGPT 頁面注入指令碼
+│   └── gemini.js          # Gemini 頁面注入指令碼
+└── icons/                  # 擴充功能圖示
 ```
 
 ---
 
-## 隐私说明
+## 隱私說明
 
-- **不上传任何内容** - 扩展完全在本地运行，不向任何服务器发送数据
-- **无遥测/日志采集** - 不收集使用数据、不追踪行为
-- **数据存储位置** - 仅使用浏览器本地存储（chrome.storage.local）
-- **无第三方服务** - 不依赖任何外部 API 或服务
-- **如何删除数据** - 卸载扩展即可完全清除，或在 Chrome 扩展设置中清除存储
+- **不上傳任何內容** - 擴充功能完全在在地執行，不向任何伺服器傳送資料
+- **無遙測/日誌採集** - 不收集使用資料、不追蹤行為
+- **資料儲存位置** - 僅使用瀏覽器在地儲存（chrome.storage.local）
+- **無第三方服務** - 不依賴任何外部 API 或服務
+- **如何刪除資料** - 解除安裝擴充功能即可完全清除，或在 Chrome 擴充功能設定中清除儲存
 
 ---
 
-## 常见问题
+## 常見問題
 
-### Q: 安装后无法连接 AI 页面？
-**A:** 安装或更新扩展后，需要刷新已打开的 AI 页面。
+### Q: 安裝後無法連線 AI 頁面？
+**A:** 安裝或更新擴充功能後，需要重新整理已開啟的 AI 頁面。
 
-### Q: 交叉引用时提示"无法获取回复"？
-**A:** 确保源 AI 已经有回复。系统会获取该 AI 的最新一条回复。
+### Q: 交叉引用時提示"無法獲取回覆"？
+**A:** 確保來源 AI 已經有回覆。系統會獲取該 AI 的最新一條回覆。
 
-### Q: ChatGPT 回复很长时会超时吗？
-**A:** 不会。系统支持最长 10 分钟的回复捕获。
+### Q: ChatGPT 回覆很長時會逾時嗎？
+**A:** 不會。系統支援最長 10 分鐘的回覆擷取。
 
 ---
 
 ## 已知限制
 
-- 依赖各 AI 平台的 DOM 结构，平台更新可能导致功能失效
-- 讨论模式固定 2 个参与者
-- 不支持 Claude Artifacts、ChatGPT Canvas 等特殊功能
-- **Gemini 不支持自动文件上传** - 由于 Google 的安全限制，Gemini 需要手动上传文件（Claude 和 ChatGPT 正常支持）
+- 依賴各 AI 平臺的 DOM 結構，平臺更新可能導致功能失效
+- 討論模式固定 2 個參與者
+- 不支援 Claude Artifacts、ChatGPT Canvas 等特殊功能
+- **Gemini 不支援自動檔案上傳** - 由於 Google 的安全限制，Gemini 需要手動上傳檔案（Claude 和 ChatGPT 正常支援）
 
 ---
 
@@ -292,4 +313,4 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-© AXTONLIU™ & AI 精英学院™ 版权所有
+© AXTONLIU™ & AI 精英學院™ 版權所有

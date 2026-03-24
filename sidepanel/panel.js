@@ -4,11 +4,11 @@ const AI_TYPES = ['claude', 'chatgpt', 'gemini'];
 
 // Cross-reference action keywords (inserted into message)
 const CROSS_REF_ACTIONS = {
-  evaluate: { prompt: '评价一下' },
-  learn: { prompt: '有什么值得借鉴的' },
-  critique: { prompt: '批评一下，指出问题' },
-  supplement: { prompt: '有什么遗漏需要补充' },
-  compare: { prompt: '对比一下你的观点' }
+  evaluate: { prompt: '評價一下' },
+  learn: { prompt: '有什麼值得借鏡的' },
+  critique: { prompt: '批評一下，指出問題' },
+  supplement: { prompt: '有什麼遺漏需要補充' },
+  compare: { prompt: '對比一下你的觀點' }
 };
 
 // DOM Elements
@@ -19,8 +19,16 @@ const fileInput = document.getElementById('file-input');
 const addFileBtn = document.getElementById('add-file-btn');
 const fileList = document.getElementById('file-list');
 
+// Settings Elements
+const settingsBtn = document.getElementById('settings-btn');
+const settingsPanel = document.getElementById('settings-panel');
+const saveSettingsBtn = document.getElementById('save-settings-btn');
+
 // Selected files storage
 let selectedFiles = [];
+
+// Enabled AIs state
+let enabledAIs = ['chatgpt', 'gemini'];
 
 // Track connected tabs
 const connectedTabs = {
@@ -42,18 +50,92 @@ let discussionState = {
 
 
 // Initialize
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadSettings();
   checkConnectedTabs();
   setupEventListeners();
   setupDiscussionMode();
   setupFileUpload();
 });
 
+async function loadSettings() {
+  const result = await chrome.storage.local.get('enabledAIs');
+  if (result.enabledAIs) {
+    enabledAIs = result.enabledAIs;
+  } else {
+    // Default settings
+    enabledAIs = ['chatgpt', 'gemini'];
+    await chrome.storage.local.set({ enabledAIs });
+  }
+  
+  // Update checkboxes
+  document.getElementById('load-chatgpt').checked = enabledAIs.includes('chatgpt');
+  document.getElementById('load-gemini').checked = enabledAIs.includes('gemini');
+  document.getElementById('load-claude').checked = enabledAIs.includes('claude');
+  
+  applySettings();
+}
+
+function applySettings() {
+  AI_TYPES.forEach(ai => {
+    const isEnabled = enabledAIs.includes(ai);
+    
+    // Hide/show in selector
+    const selector = document.getElementById(`ai-selector-${ai}`);
+    if (selector) selector.classList.toggle('hidden', !isEnabled);
+    
+    // Hide/show in mention buttons
+    const mentionBtn = document.getElementById(`mention-${ai}-btn`) || 
+                      document.querySelector(`.mention-btn[data-mention="@${capitalize(ai)}"]`);
+    if (mentionBtn) mentionBtn.classList.toggle('hidden', !isEnabled);
+    
+    // Hide/show in discussion participants
+    const participantWrapper = document.getElementById(`participant-${ai}-wrapper`);
+    if (participantWrapper) participantWrapper.classList.toggle('hidden', !isEnabled);
+    
+    // Uncheck if disabled
+    if (!isEnabled) {
+      const targetCheckbox = document.getElementById(`target-${ai}`);
+      if (targetCheckbox) targetCheckbox.checked = false;
+      
+      const participantCheckbox = document.querySelector(`input[name="participant"][value="${ai}"]`);
+      if (participantCheckbox) participantCheckbox.checked = false;
+    }
+  });
+}
+
 function setupEventListeners() {
   sendBtn.addEventListener('click', handleSend);
 
+  const clearLogBtn = document.getElementById('clear-log-btn');
+  if (clearLogBtn) {
+    clearLogBtn.addEventListener('click', () => {
+      const entries = logContainer.querySelectorAll('.log-entry');
+      entries.forEach(entry => entry.remove());
+    });
+  }
+
+  const newChatBtn = document.getElementById('new-chat-btn');
+  if (newChatBtn) {
+    newChatBtn.addEventListener('click', handleNewChat);
+  }
+
+  // Settings toggle
+  settingsBtn.addEventListener('click', () => {
+    settingsPanel.classList.toggle('hidden');
+  });
+
+  saveSettingsBtn.addEventListener('click', async () => {
+    const newEnabled = [];
+    if (document.getElementById('load-chatgpt').checked) newEnabled.push('chatgpt');
+    if (document.getElementById('load-gemini').checked) newEnabled.push('gemini');
+    if (document.getElementById('load-claude').checked) newEnabled.push('claude');
+    
+    await chrome.storage.local.set({ enabledAIs: newEnabled });
+    location.reload(); // Reload to apply changes
+  });
+
   // Enter to send, Shift+Enter for new line (like ChatGPT)
-  // But ignore Enter during IME composition (e.g., Chinese input)
   messageInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
       e.preventDefault();
@@ -86,7 +168,6 @@ function setupEventListeners() {
       const textBefore = messageInput.value.substring(0, cursorPos);
       const textAfter = messageInput.value.substring(cursorPos);
 
-      // Add space before if needed
       const needsSpace = textBefore.length > 0 && !textBefore.endsWith(' ') && !textBefore.endsWith('\n');
       const insertText = (needsSpace ? ' ' : '') + actionConfig.prompt + ' ';
 
@@ -94,8 +175,6 @@ function setupEventListeners() {
       messageInput.focus();
       messageInput.selectionStart = messageInput.selectionEnd = cursorPos + insertText.length;
     }
-
-    // Reset select to placeholder
     e.target.value = '';
   });
 
@@ -107,7 +186,6 @@ function setupEventListeners() {
       const textBefore = messageInput.value.substring(0, cursorPos);
       const textAfter = messageInput.value.substring(cursorPos);
 
-      // Add space before if needed
       const needsSpace = textBefore.length > 0 && !textBefore.endsWith(' ') && !textBefore.endsWith('\n');
       const insertText = (needsSpace ? ' ' : '') + mention + ' ';
 
@@ -122,16 +200,15 @@ function setupEventListeners() {
     if (message.type === 'TAB_STATUS_UPDATE') {
       updateTabStatus(message.aiType, message.connected);
     } else if (message.type === 'RESPONSE_CAPTURED') {
-      log(`${message.aiType}: Response captured`, 'success');
-      // Handle discussion mode response
+      log(`${capitalize(message.aiType)}: 已擷取回應`, 'success');
       if (discussionState.active && discussionState.pendingResponses.has(message.aiType)) {
         handleDiscussionResponse(message.aiType, message.content);
       }
     } else if (message.type === 'SEND_RESULT') {
       if (message.success) {
-        log(`${message.aiType}: Message sent`, 'success');
+        log(`${capitalize(message.aiType)}: 訊息已送出`, 'success');
       } else {
-        log(`${message.aiType}: Failed - ${message.error}`, 'error');
+        log(`${capitalize(message.aiType)}: 失敗 - ${message.error}`, 'error');
       }
     }
   });
@@ -140,16 +217,15 @@ function setupEventListeners() {
 async function checkConnectedTabs() {
   try {
     const tabs = await chrome.tabs.query({});
-
     for (const tab of tabs) {
       const aiType = getAITypeFromUrl(tab.url);
-      if (aiType) {
+      if (aiType && enabledAIs.includes(aiType)) {
         connectedTabs[aiType] = tab.id;
         updateTabStatus(aiType, true);
       }
     }
   } catch (err) {
-    log('Error checking tabs: ' + err.message, 'error');
+    log('檢查分頁時出錯: ' + err.message, 'error');
   }
 }
 
@@ -164,12 +240,27 @@ function getAITypeFromUrl(url) {
 function updateTabStatus(aiType, connected) {
   const statusEl = document.getElementById(`status-${aiType}`);
   if (statusEl) {
-    // Status is now a dot indicator, no text needed
     statusEl.className = 'status ' + (connected ? 'connected' : 'disconnected');
-    statusEl.title = connected ? '已连接' : '未找到';
+    statusEl.title = connected ? '已連接' : '未找到分頁';
   }
   if (connected) {
     connectedTabs[aiType] = true;
+  }
+}
+
+async function handleNewChat() {
+  log('正在為所有已啟用的 AI 開啟新對話...');
+  const tabs = await chrome.tabs.query({});
+  for (const tab of tabs) {
+    const aiType = getAITypeFromUrl(tab.url);
+    if (aiType && enabledAIs.includes(aiType)) {
+      try {
+        chrome.tabs.sendMessage(tab.id, { type: 'NEW_CHAT_ACTION' });
+        log(`已發送新對話指令至 ${capitalize(aiType)}`, 'success');
+      } catch (e) {
+        log(`發送新對話至 ${capitalize(aiType)} 失敗`, 'error');
+      }
+    }
   }
 }
 
@@ -177,67 +268,55 @@ async function handleSend() {
   const message = messageInput.value.trim();
   if (!message) return;
 
-  // Parse message for @ mentions
   const parsed = parseMessage(message);
 
-  // Determine targets
   let targets;
   if (parsed.mentions.length > 0) {
-    // If @ mentioned specific AIs, only send to those
-    targets = parsed.mentions;
+    targets = parsed.mentions.filter(ai => enabledAIs.includes(ai));
   } else {
-    // Otherwise use checkbox selection
     targets = AI_TYPES.filter(ai => {
       const checkbox = document.getElementById(`target-${ai}`);
-      return checkbox && checkbox.checked;
+      return checkbox && checkbox.checked && enabledAIs.includes(ai);
     });
   }
 
   if (targets.length === 0) {
-    log('No targets selected', 'error');
+    log('未選擇目標 AI', 'error');
     return;
   }
 
   sendBtn.disabled = true;
-
-  // Clear input immediately after sending
   messageInput.value = '';
 
-  // Send files first if any
   const filesToSend = [...selectedFiles];
   if (filesToSend.length > 0) {
-    log(`正在上传 ${filesToSend.length} 个文件...`);
+    log(`正在上傳 ${filesToSend.length} 個檔案...`);
     for (const target of targets) {
       await sendFilesToAI(target, filesToSend);
     }
     clearFiles();
-    // Wait a bit for files to be processed before sending message
     await new Promise(r => setTimeout(r, 500));
   }
 
   try {
-    // If mutual review, handle specially
     if (parsed.mutual) {
       if (targets.length < 2) {
-        log('Mutual review requires at least 2 AIs selected', 'error');
+        log('互評模式至少需要選擇 2 個 AI', 'error');
       } else {
-        log(`Mutual review: ${targets.join(', ')}`);
+        log(`互評模式啟動: ${targets.join(', ')}`);
         await handleMutualReview(targets, parsed.prompt);
       }
-    }
-    // If cross-reference, handle specially
-    else if (parsed.crossRef) {
-      log(`Cross-reference: ${parsed.targetAIs.join(', ')} <- ${parsed.sourceAIs.join(', ')}`);
+    } else if (parsed.crossRef) {
+      log(`交叉引用: ${parsed.targetAIs.join(', ')} <- ${parsed.sourceAIs.join(', ')}`);
       await handleCrossReference(parsed);
     } else {
-      // Send to target(s)
-      log(`Sending to: ${targets.join(', ')}`);
+      log(`正在傳送至: ${targets.join(', ')}`);
       for (const target of targets) {
         await sendToAI(target, message);
       }
     }
   } catch (err) {
-    log('Error: ' + err.message, 'error');
+    log('錯誤: ' + err.message, 'error');
   }
 
   sendBtn.disabled = false;
@@ -245,45 +324,34 @@ async function handleSend() {
 }
 
 function parseMessage(message) {
-  // Check for /mutual command: /mutual [optional prompt]
-  // Triggers mutual review based on current responses (no new topic needed)
   const trimmedMessage = message.trim();
   if (trimmedMessage.toLowerCase() === '/mutual' || trimmedMessage.toLowerCase().startsWith('/mutual ')) {
-    // Extract everything after "/mutual " as the prompt
     const prompt = trimmedMessage.length > 7 ? trimmedMessage.substring(7).trim() : '';
     return {
       mutual: true,
-      prompt: prompt || '请评价以上观点。你同意什么？不同意什么？有什么补充？',
+      prompt: prompt || '請評價以上觀點。你同意什麼？不同意什麼？有什麼補充？',
       crossRef: false,
       mentions: [],
       originalMessage: message
     };
   }
 
-  // Check for /cross command first: /cross @targets <- @sources message
-  // Use this for complex cases (3 AIs, or when you want to be explicit)
   if (message.trim().toLowerCase().startsWith('/cross ')) {
     const arrowIndex = message.indexOf('<-');
     if (arrowIndex === -1) {
-      // No arrow found, treat as regular message
       return { crossRef: false, mentions: [], originalMessage: message };
     }
 
-    const beforeArrow = message.substring(7, arrowIndex).trim(); // Skip "/cross "
-    const afterArrow = message.substring(arrowIndex + 2).trim();  // Skip "<-"
+    const beforeArrow = message.substring(7, arrowIndex).trim();
+    const afterArrow = message.substring(arrowIndex + 2).trim();
 
-    // Extract targets (before arrow)
     const mentionPattern = /@(claude|chatgpt|gemini)/gi;
     const targetMatches = [...beforeArrow.matchAll(mentionPattern)];
     const targetAIs = [...new Set(targetMatches.map(m => m[1].toLowerCase()))];
 
-    // Extract sources and message (after arrow)
-    // Find all @mentions in afterArrow, sources are all @mentions
-    // Message is everything after the last @mention
     const sourceMatches = [...afterArrow.matchAll(mentionPattern)];
     const sourceAIs = [...new Set(sourceMatches.map(m => m[1].toLowerCase()))];
 
-    // Find where the actual message starts (after the last @mention)
     let actualMessage = afterArrow;
     if (sourceMatches.length > 0) {
       const lastMatch = sourceMatches[sourceMatches.length - 1];
@@ -302,15 +370,12 @@ function parseMessage(message) {
     }
   }
 
-  // Pattern-based detection for @ mentions
   const mentionPattern = /@(claude|chatgpt|gemini)/gi;
   const matches = [...message.matchAll(mentionPattern)];
   const mentions = [...new Set(matches.map(m => m[1].toLowerCase()))];
 
-  // For exactly 2 AIs: use keyword detection (simpler syntax)
-  // Last mentioned = source (being evaluated), first = target (doing evaluation)
   if (mentions.length === 2) {
-    const evalKeywords = /评价|看看|怎么样|怎么看|如何|讲的|说的|回答|赞同|同意|分析|认为|观点|看法|意见|借鉴|批评|补充|对比|evaluate|think of|opinion|review|agree|analysis|compare|learn from/i;
+    const evalKeywords = /評價|看看|怎麼樣|怎麼看|如何|講的|說的|回答|贊同|同意|分析|認為|觀點|看法|意見|借鏡|批評|補充|對比|evaluate|think of|opinion|review|agree|analysis|compare|learn from/i;
 
     if (evalKeywords.test(message)) {
       const sourceAI = matches[matches.length - 1][1].toLowerCase();
@@ -326,8 +391,6 @@ function parseMessage(message) {
     }
   }
 
-  // For 3+ AIs without /cross command: just send to all (no cross-reference)
-  // User should use /cross command for complex 3-AI scenarios
   return {
     crossRef: false,
     mentions,
@@ -336,21 +399,17 @@ function parseMessage(message) {
 }
 
 async function handleCrossReference(parsed) {
-  // Get responses from all source AIs
   const sourceResponses = [];
-
   for (const sourceAI of parsed.sourceAIs) {
     const response = await getLatestResponse(sourceAI);
     if (!response) {
-      log(`Could not get ${sourceAI}'s response`, 'error');
+      log(`無法取得 ${capitalize(sourceAI)} 的回應`, 'error');
       return;
     }
     sourceResponses.push({ ai: sourceAI, content: response });
   }
 
-  // Build the full message with XML tags for each source
   let fullMessage = parsed.originalMessage + '\n';
-
   for (const source of sourceResponses) {
     fullMessage += `
 <${source.ai}_response>
@@ -358,41 +417,30 @@ ${source.content}
 </${source.ai}_response>`;
   }
 
-  // Send to all target AIs
   for (const targetAI of parsed.targetAIs) {
     await sendToAI(targetAI, fullMessage);
   }
 }
 
-// ============================================
-// Mutual Review Functions
-// ============================================
-
 async function handleMutualReview(participants, prompt) {
-  // Get current responses from all participants
   const responses = {};
-
-  log(`[Mutual] Fetching responses from ${participants.join(', ')}...`);
+  log(`[互評] 正在獲取 ${participants.join(', ')} 的回應...`);
 
   for (const ai of participants) {
     const response = await getLatestResponse(ai);
     if (!response || response.trim().length === 0) {
-      log(`[Mutual] Could not get ${ai}'s response - make sure ${ai} has replied first`, 'error');
+      log(`[互評] 無法取得 ${capitalize(ai)} 的回應 - 請確保該 AI 已先回覆`, 'error');
       return;
     }
     responses[ai] = response;
-    log(`[Mutual] Got ${ai}'s response (${response.length} chars)`);
+    log(`[互評] 已取得 ${capitalize(ai)} 的回應 (${response.length} 字)`);
   }
 
-  log(`[Mutual] All responses collected. Sending cross-evaluations...`);
+  log(`[互評] 所有回應已收集。正在傳送交叉評價...`);
 
-  // For each AI, send them the responses from all OTHER AIs
   for (const targetAI of participants) {
     const otherAIs = participants.filter(ai => ai !== targetAI);
-
-    // Build message with all other AIs' responses
-    let evalMessage = `以下是其他 AI 的观点：\n`;
-
+    let evalMessage = `以下是其他 AI 的觀點：\n`;
     for (const sourceAI of otherAIs) {
       evalMessage += `
 <${sourceAI}_response>
@@ -400,14 +448,11 @@ ${responses[sourceAI]}
 </${sourceAI}_response>
 `;
     }
-
     evalMessage += `\n${prompt}`;
-
-    log(`[Mutual] Sending to ${targetAI}: ${otherAIs.join('+')} responses + prompt`);
+    log(`[互評] 正在傳送至 ${capitalize(targetAI)}: 包含 ${otherAIs.join('+')} 的回應及指令`);
     await sendToAI(targetAI, evalMessage);
   }
-
-  log(`[Mutual] Complete! All ${participants.length} AIs received cross-evaluations`, 'success');
+  log(`[互評] 完成！所有參與者均已收到交叉評價指令`, 'success');
 }
 
 async function getLatestResponse(aiType) {
@@ -427,9 +472,9 @@ async function sendToAI(aiType, message) {
       { type: 'SEND_MESSAGE', aiType, message },
       (response) => {
         if (response?.success) {
-          log(`Sent to ${aiType}`, 'success');
+          log(`已傳送至 ${capitalize(aiType)}`, 'success');
         } else {
-          log(`Failed to send to ${aiType}: ${response?.error || 'Unknown error'}`, 'error');
+          log(`傳送至 ${capitalize(aiType)} 失敗: ${response?.error || '未知錯誤'}`, 'error');
         }
         resolve(response);
       }
@@ -451,22 +496,15 @@ function log(message, type = 'info') {
   entry.innerHTML = `<span class="time">${time}</span>${message}`;
   logContainer.insertBefore(entry, logContainer.firstChild);
 
-  // Keep only last 50 entries
   while (logContainer.children.length > 50) {
     logContainer.removeChild(logContainer.lastChild);
   }
 }
 
-// ============================================
-// Discussion Mode Functions
-// ============================================
-
 function setupDiscussionMode() {
-  // Mode switcher buttons
   document.getElementById('mode-normal').addEventListener('click', () => switchMode('normal'));
   document.getElementById('mode-discussion').addEventListener('click', () => switchMode('discussion'));
 
-  // Discussion controls
   document.getElementById('start-discussion-btn').addEventListener('click', startDiscussion);
   document.getElementById('next-round-btn').addEventListener('click', nextRound);
   document.getElementById('end-discussion-btn').addEventListener('click', endDiscussion);
@@ -474,7 +512,6 @@ function setupDiscussionMode() {
   document.getElementById('new-discussion-btn').addEventListener('click', resetDiscussion);
   document.getElementById('interject-btn').addEventListener('click', handleInterject);
 
-  // Participant selection validation
   document.querySelectorAll('input[name="participant"]').forEach(checkbox => {
     checkbox.addEventListener('change', validateParticipants);
   });
@@ -508,7 +545,7 @@ function validateParticipants() {
 async function startDiscussion() {
   const topic = document.getElementById('discussion-topic').value.trim();
   if (!topic) {
-    log('请输入讨论主题', 'error');
+    log('請輸入討論主題', 'error');
     return;
   }
 
@@ -516,11 +553,10 @@ async function startDiscussion() {
     .map(cb => cb.value);
 
   if (selected.length !== 2) {
-    log('请选择 2 位参与者', 'error');
+    log('請選擇 2 位參與者', 'error');
     return;
   }
 
-  // Initialize discussion state
   discussionState = {
     active: true,
     topic: topic,
@@ -531,31 +567,27 @@ async function startDiscussion() {
     roundType: 'initial'
   };
 
-  // Update UI
   document.getElementById('discussion-setup').classList.add('hidden');
   document.getElementById('discussion-active').classList.remove('hidden');
-  document.getElementById('round-badge').textContent = '第 1 轮';
+  document.getElementById('round-badge').textContent = '第 1 輪';
   document.getElementById('participants-badge').textContent =
     `${capitalize(selected[0])} vs ${capitalize(selected[1])}`;
   document.getElementById('topic-display').textContent = topic;
-  updateDiscussionStatus('waiting', `等待 ${selected.join(' 和 ')} 的初始回复...`);
+  updateDiscussionStatus('waiting', `等待 ${selected.join(' 和 ')} 的初始回覆...`);
 
-  // Disable buttons during round
   document.getElementById('next-round-btn').disabled = true;
   document.getElementById('generate-summary-btn').disabled = true;
 
-  log(`讨论开始: ${selected.join(' vs ')}`, 'success');
+  log(`討論開始: ${selected.join(' vs ')}`, 'success');
 
-  // Send topic to both AIs
   for (const ai of selected) {
-    await sendToAI(ai, `Please share your thoughts on the following topic:\n\n${topic}`);
+    await sendToAI(ai, `請就以下主題分享你的看法：\n\n${topic}`);
   }
 }
 
 function handleDiscussionResponse(aiType, content) {
   if (!discussionState.active) return;
 
-  // Record this response in history
   discussionState.history.push({
     round: discussionState.currentRound,
     ai: aiType,
@@ -563,25 +595,21 @@ function handleDiscussionResponse(aiType, content) {
     content: content
   });
 
-  // Remove from pending
   discussionState.pendingResponses.delete(aiType);
+  log(`討論: ${capitalize(aiType)} 已回覆 (第 ${discussionState.currentRound} 輪)`, 'success');
 
-  log(`讨论: ${aiType} 已回复 (第 ${discussionState.currentRound} 轮)`, 'success');
-
-  // Check if all pending responses received
   if (discussionState.pendingResponses.size === 0) {
     onRoundComplete();
   } else {
-    const remaining = Array.from(discussionState.pendingResponses).join(', ');
+    const remaining = Array.from(discussionState.pendingResponses).map(capitalize).join(', ');
     updateDiscussionStatus('waiting', `等待 ${remaining}...`);
   }
 }
 
 function onRoundComplete() {
-  log(`第 ${discussionState.currentRound} 轮完成`, 'success');
-  updateDiscussionStatus('ready', `第 ${discussionState.currentRound} 轮完成，可以进入下一轮`);
+  log(`第 ${discussionState.currentRound} 輪完成`, 'success');
+  updateDiscussionStatus('ready', `第 ${discussionState.currentRound} 輪完成，可以進入下一輪`);
 
-  // Enable next round button
   document.getElementById('next-round-btn').disabled = false;
   document.getElementById('generate-summary-btn').disabled = false;
 }
@@ -590,12 +618,10 @@ async function nextRound() {
   discussionState.currentRound++;
   const [ai1, ai2] = discussionState.participants;
 
-  // Update UI
-  document.getElementById('round-badge').textContent = `第 ${discussionState.currentRound} 轮`;
+  document.getElementById('round-badge').textContent = `第 ${discussionState.currentRound} 輪`;
   document.getElementById('next-round-btn').disabled = true;
   document.getElementById('generate-summary-btn').disabled = true;
 
-  // Get previous round responses
   const prevRound = discussionState.currentRound - 1;
   const ai1Response = discussionState.history.find(
     h => h.round === prevRound && h.ai === ai1
@@ -605,36 +631,31 @@ async function nextRound() {
   )?.content;
 
   if (!ai1Response || !ai2Response) {
-    log('缺少上一轮的回复', 'error');
+    log('缺少上一輪的回覆內容', 'error');
     return;
   }
 
-  // Set pending responses
   discussionState.pendingResponses = new Set([ai1, ai2]);
   discussionState.roundType = 'cross-eval';
 
-  updateDiscussionStatus('waiting', `交叉评价: ${ai1} 评价 ${ai2}，${ai2} 评价 ${ai1}...`);
+  updateDiscussionStatus('waiting', `交叉評價: ${capitalize(ai1)} 評價 ${capitalize(ai2)}，${capitalize(ai2)} 評價 ${capitalize(ai1)}...`);
+  log(`第 ${discussionState.currentRound} 輪: 交叉評價開始`);
 
-  log(`第 ${discussionState.currentRound} 轮: 交叉评价开始`);
-
-  // Send cross-evaluation requests
-  // AI1 evaluates AI2's response
-  const msg1 = `Here is ${capitalize(ai2)}'s response to the topic "${discussionState.topic}":
+  const msg1 = `這是 ${capitalize(ai2)} 對於主題「${discussionState.topic}」的回應：
 
 <${ai2}_response>
 ${ai2Response}
 </${ai2}_response>
 
-Please evaluate this response. What do you agree with? What do you disagree with? What would you add or change?`;
+請評價這個回應。你同意什麼？不同意什麼？有什麼想補充或修改的？`;
 
-  // AI2 evaluates AI1's response
-  const msg2 = `Here is ${capitalize(ai1)}'s response to the topic "${discussionState.topic}":
+  const msg2 = `這是 ${capitalize(ai1)} 對於主題「${discussionState.topic}」的回應：
 
 <${ai1}_response>
 ${ai1Response}
 </${ai1}_response>
 
-Please evaluate this response. What do you agree with? What do you disagree with? What would you add or change?`;
+請評價這個回應。你同意什麼？不同意什麼？有什麼想補充或修改的？`;
 
   await sendToAI(ai1, msg1);
   await sendToAI(ai2, msg2);
@@ -645,12 +666,12 @@ async function handleInterject() {
   const message = input.value.trim();
 
   if (!message) {
-    log('请输入要发送的消息', 'error');
+    log('請輸入要傳送的訊息', 'error');
     return;
   }
 
   if (!discussionState.active || discussionState.participants.length === 0) {
-    log('当前没有进行中的讨论', 'error');
+    log('目前沒有進行中的討論', 'error');
     return;
   }
 
@@ -658,34 +679,30 @@ async function handleInterject() {
   btn.disabled = true;
 
   const [ai1, ai2] = discussionState.participants;
+  log(`[插話] 正在獲取雙方最新回覆...`);
 
-  log(`[插话] 正在获取双方最新回复...`);
-
-  // Get latest responses from both participants
   const ai1Response = await getLatestResponse(ai1);
   const ai2Response = await getLatestResponse(ai2);
 
   if (!ai1Response || !ai2Response) {
-    log(`[插话] 无法获取回复，请确保双方都已回复`, 'error');
+    log(`[插話] 無法獲取回應，請確保雙方都已回覆`, 'error');
     btn.disabled = false;
     return;
   }
 
-  log(`[插话] 已获取双方回复，正在发送...`);
+  log(`[插話] 已獲取雙方回覆，正在傳送指令...`);
 
-  // Send to AI1: user message + AI2's response
   const msg1 = `${message}
 
-以下是 ${capitalize(ai2)} 的最新回复：
+以下是 ${capitalize(ai2)} 的最新回覆：
 
 <${ai2}_response>
 ${ai2Response}
 </${ai2}_response>`;
 
-  // Send to AI2: user message + AI1's response
   const msg2 = `${message}
 
-以下是 ${capitalize(ai1)} 的最新回复：
+以下是 ${capitalize(ai1)} 的最新回覆：
 
 <${ai1}_response>
 ${ai1Response}
@@ -694,58 +711,50 @@ ${ai1Response}
   await sendToAI(ai1, msg1);
   await sendToAI(ai2, msg2);
 
-  log(`[插话] 已发送给双方（含对方回复）`, 'success');
-
-  // Clear input
+  log(`[插話] 已傳送給雙方（包含對方回覆內容）`, 'success');
   input.value = '';
   btn.disabled = false;
 }
 
 async function generateSummary() {
   document.getElementById('generate-summary-btn').disabled = true;
-  updateDiscussionStatus('waiting', '正在请求双方生成总结...');
+  updateDiscussionStatus('waiting', '正在請求雙方生成總結...');
 
   const [ai1, ai2] = discussionState.participants;
-
-  // Build conversation history for summary
-  let historyText = `主题: ${discussionState.topic}\n\n`;
+  let historyText = `主題: ${discussionState.topic}\n\n`;
 
   for (let round = 1; round <= discussionState.currentRound; round++) {
-    historyText += `=== 第 ${round} 轮 ===\n\n`;
+    historyText += `=== 第 ${round} 輪 ===\n\n`;
     const roundEntries = discussionState.history.filter(h => h.round === round);
     for (const entry of roundEntries) {
       historyText += `[${capitalize(entry.ai)}]:\n${entry.content}\n\n`;
     }
   }
 
-  const summaryPrompt = `请对以下 AI 之间的讨论进行总结。请包含：
-1. 主要共识点
-2. 主要分歧点
-3. 各方的核心观点
-4. 总体结论
+  const summaryPrompt = `請對以下 AI 之間的討論進行總結。請包含：
+1. 主要共識點
+2. 主要分歧點
+3. 各方的核心觀點
+4. 總體結論
 
-讨论历史：
+討論歷史：
 ${historyText}`;
 
-  // Send to both AIs
   discussionState.roundType = 'summary';
   discussionState.pendingResponses = new Set([ai1, ai2]);
 
-  log(`[Summary] 正在请求双方生成总结...`);
+  log(`[總結] 正在請求雙方生成討論總結...`);
   await sendToAI(ai1, summaryPrompt);
   await sendToAI(ai2, summaryPrompt);
 
-  // Wait for both responses, then show summary
   const checkForSummary = setInterval(async () => {
     if (discussionState.pendingResponses.size === 0) {
       clearInterval(checkForSummary);
-
-      // Get both summaries
       const summaries = discussionState.history.filter(h => h.type === 'summary');
       const ai1Summary = summaries.find(s => s.ai === ai1)?.content || '';
       const ai2Summary = summaries.find(s => s.ai === ai2)?.content || '';
 
-      log(`[Summary] 双方总结已生成`, 'success');
+      log(`[總結] 雙方總結已生成`, 'success');
       showSummary(ai1Summary, ai2Summary);
     }
   }, 500);
@@ -757,32 +766,29 @@ function showSummary(ai1Summary, ai2Summary) {
 
   const [ai1, ai2] = discussionState.participants;
 
-  // Handle empty summaries
   if (!ai1Summary && !ai2Summary) {
-    log('警告: 未收到 AI 的总结内容', 'error');
+    log('警告: 未收到 AI 的總結內容', 'error');
   }
 
-  // Build summary HTML - show both summaries side by side conceptually
   let html = `<div class="round-summary">
-    <h4>双方总结对比</h4>
+    <h4>雙方總結對比</h4>
     <div class="summary-comparison">
       <div class="ai-response">
-        <div class="ai-name ${ai1}">${capitalize(ai1)} 的总结：</div>
+        <div class="ai-name ${ai1}">${capitalize(ai1)} 的總結：</div>
         <div>${escapeHtml(ai1Summary).replace(/\n/g, '<br>')}</div>
       </div>
       <div class="ai-response">
-        <div class="ai-name ${ai2}">${capitalize(ai2)} 的总结：</div>
+        <div class="ai-name ${ai2}">${capitalize(ai2)} 的總結：</div>
         <div>${escapeHtml(ai2Summary).replace(/\n/g, '<br>')}</div>
       </div>
     </div>
   </div>`;
 
-  // Add round-by-round history
-  html += `<div class="round-summary"><h4>完整讨论历史</h4>`;
+  html += `<div class="round-summary"><h4>完整討論歷史</h4>`;
   for (let round = 1; round <= discussionState.currentRound; round++) {
     const roundEntries = discussionState.history.filter(h => h.round === round && h.type !== 'summary');
     if (roundEntries.length > 0) {
-      html += `<div style="margin-top:12px"><strong>第 ${round} 轮</strong></div>`;
+      html += `<div style="margin-top:12px"><strong>第 ${round} 輪</strong></div>`;
       for (const entry of roundEntries) {
         const preview = entry.content.substring(0, 200) + (entry.content.length > 200 ? '...' : '');
         html += `<div class="ai-response">
@@ -796,11 +802,11 @@ function showSummary(ai1Summary, ai2Summary) {
 
   document.getElementById('summary-content').innerHTML = html;
   discussionState.active = false;
-  log('讨论总结已生成', 'success');
+  log('討論總結已生成', 'success');
 }
 
 function endDiscussion() {
-  if (confirm('确定结束讨论吗？建议先生成总结。')) {
+  if (confirm('確定結束討論嗎？建議先生成總結。')) {
     resetDiscussion();
   }
 }
@@ -816,7 +822,6 @@ function resetDiscussion() {
     roundType: null
   };
 
-  // Reset UI
   document.getElementById('discussion-setup').classList.remove('hidden');
   document.getElementById('discussion-active').classList.add('hidden');
   document.getElementById('discussion-summary').classList.add('hidden');
@@ -824,7 +829,7 @@ function resetDiscussion() {
   document.getElementById('next-round-btn').disabled = true;
   document.getElementById('generate-summary-btn').disabled = true;
 
-  log('讨论已结束');
+  log('討論已結束');
 }
 
 function updateDiscussionStatus(state, text) {
@@ -849,26 +854,21 @@ function escapeHtml(text) {
 
 function setupFileUpload() {
   addFileBtn.addEventListener('click', () => fileInput.click());
-
   fileInput.addEventListener('change', (e) => {
     const files = Array.from(e.target.files);
     files.forEach(file => addFile(file));
-    fileInput.value = ''; // Reset for next selection
+    fileInput.value = '';
   });
 }
 
 function addFile(file) {
-  // Check file size (max 10MB)
   if (file.size > 10 * 1024 * 1024) {
-    log(`文件 ${file.name} 超过 10MB 限制`, 'error');
+    log(`檔案 ${file.name} 超過 10MB 限制`, 'error');
     return;
   }
-
-  // Check for duplicates
   if (selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
     return;
   }
-
   selectedFiles.push(file);
   renderFileList();
 }
@@ -880,7 +880,6 @@ function removeFile(index) {
 
 function renderFileList() {
   fileList.innerHTML = '';
-
   selectedFiles.forEach((file, index) => {
     const item = document.createElement('div');
     item.className = 'file-item';
@@ -916,18 +915,18 @@ async function readFileAsBase64(file) {
 }
 
 async function sendFilesToAI(aiType, files) {
-  log(`${aiType}: 准备上传 ${files.length} 个文件...`);
+  log(`${capitalize(aiType)}: 準備上傳 ${files.length} 個檔案...`);
   const fileDataArray = await Promise.all(files.map(readFileAsBase64));
-  log(`${aiType}: 文件已编码，正在发送...`);
+  log(`${capitalize(aiType)}: 檔案已編碼，正在傳送...`);
 
   return new Promise((resolve) => {
     chrome.runtime.sendMessage(
       { type: 'SEND_FILES', aiType, files: fileDataArray },
       (response) => {
         if (response?.success) {
-          log(`${aiType}: 文件上传成功 (${files.length} 个)`, 'success');
+          log(`${capitalize(aiType)}: 檔案上傳成功 (${files.length} 個)`, 'success');
         } else {
-          log(`${aiType}: 文件上传失败 - ${response?.error || 'Unknown'}`, 'error');
+          log(`${capitalize(aiType)}: 檔案上傳失敗 - ${response?.error || '未知'}`, 'error');
         }
         resolve(response);
       }

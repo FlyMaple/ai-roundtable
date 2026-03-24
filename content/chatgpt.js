@@ -47,6 +47,19 @@
       sendResponse({ content: response });
       return true;
     }
+
+    if (message.type === 'NEW_CHAT_ACTION') {
+      document.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'O',
+        code: 'KeyO',
+        keyCode: 79,
+        ctrlKey: true,
+        shiftKey: true,
+        bubbles: true
+      }));
+      sendResponse({ success: true });
+      return true;
+    }
   });
 
   // Setup response observer for cross-reference feature
