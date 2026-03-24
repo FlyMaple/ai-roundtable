@@ -626,6 +626,10 @@ header .subtitle {
   color: #EF4444;
 }
 
+.log-entry.warning {
+  color: var(--accent-warning);
+}
+
 .log-entry .time {
   color: var(--text-muted);
   opacity: 0.6;

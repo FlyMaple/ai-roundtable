@@ -56,15 +56,12 @@
     }
 
     if (message.type === 'NEW_CHAT_ACTION') {
-      document.dispatchEvent(new KeyboardEvent('keydown', {
-        key: 'O',
-        code: 'KeyO',
-        keyCode: 79,
-        ctrlKey: true,
-        shiftKey: true,
-        bubbles: true
-      }));
-      sendResponse({ success: true });
+      executeNewChatAction()
+        .then(() => sendResponse({ success: true }))
+        .catch(err => {
+          console.log('[AI Panel] Gemini failed to execute new chat action:', err);
+          sendResponse({ success: false, error: err.message });
+        });
       return true;
     }
   });
@@ -399,6 +396,69 @@
     // Gemini doesn't support programmatic file upload well
     // Return error with helpful message
     throw new Error('Gemini 暫不支持自動文件上傳，請手動上傳文件');
+  }
+
+  /**
+   * 特別包裝與抽取：Gemini 專屬的新對話與切換模型邏輯
+   * 獨立維護以避免 Angular 動態 class 異動導致選不到元素
+   */
+  async function executeNewChatAction() {
+    // 1. 發送新對話組合鍵 (Ctrl + Shift + O)
+    document.dispatchEvent(new KeyboardEvent('keydown', {
+      key: 'O',
+      code: 'KeyO',
+      keyCode: 79,
+      ctrlKey: true,
+      shiftKey: true,
+      bubbles: true
+    }));
+
+    //等待 500ms
+    await sleep(500);
+
+    // 2. 獲取模型切換按鈕，避免使用長度不定且隨機的 Angular ng-tns-xxx className
+    const modeSwitcherSelector = 'bard-mode-switcher button';
+    const modeSwitcherBtn = document.querySelector(modeSwitcherSelector);
+
+    if (modeSwitcherBtn && isVisible(modeSwitcherBtn)) {
+      modeSwitcherBtn.click();
+
+      // 等待 500ms 讓選單出現
+      await sleep(500);
+
+      // 3. 尋找畫面中編號最大的 cdk-dialog
+      const dialogs = document.querySelectorAll('[id^="cdk-dialog-"]');
+      let maxDialog = null;
+      let maxId = -1;
+
+      dialogs.forEach(dialog => {
+        const idMatch = dialog.id.match(/^cdk-dialog-(\d+)$/);
+        if (idMatch) {
+          const currentId = parseInt(idMatch[1], 10);
+          if (currentId > maxId) {
+            maxId = currentId;
+            maxDialog = dialog;
+          }
+        }
+      });
+
+      // 4. 點擊清單中的第三個選項
+      if (maxDialog) {
+        const targetOptionBtn = maxDialog.querySelector('mat-action-list > div:nth-child(3) > button');
+        if (targetOptionBtn) {
+          targetOptionBtn.click();
+        } else {
+          console.log('[AI Panel] Gemini: 找不到模型選單第三個項目');
+          safeSendMessage({ type: 'REMOTE_LOG', level: 'warning', message: '⚠️ Gemini: 找不到模型選單第三個項目' });
+        }
+      } else {
+        console.log('[AI Panel] Gemini: 找不到模型切換彈出視窗');
+        safeSendMessage({ type: 'REMOTE_LOG', level: 'warning', message: '⚠️ Gemini: 找不到模型切換彈出視窗' });
+      }
+    } else {
+      console.log('[AI Panel] Gemini: 找不到模型切換按鈕');
+      safeSendMessage({ type: 'REMOTE_LOG', level: 'warning', message: '⚠️ Gemini: 找不到模型切換按鈕' });
+    }
   }
 
   console.log('[AI Panel] Gemini content script loaded');

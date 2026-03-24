@@ -210,6 +210,8 @@ function setupEventListeners() {
       } else {
         log(`${capitalize(message.aiType)}: 失敗 - ${message.error}`, 'error');
       }
+    } else if (message.type === 'REMOTE_LOG') {
+      log(message.message, message.level || 'info');
     }
   });
 }
